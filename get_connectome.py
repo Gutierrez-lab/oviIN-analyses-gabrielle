@@ -71,4 +71,29 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
 
     return connectome
 
-# make another function to do the bidirectionality check
+# function to combine bidirectional connections and make the connectome undirected
+# this function is based on code from Rhessa's notebook. I believe that Alex's read_graph function in format_edgelight.py
+# does the same thing but in a different way, so this function may be redundant.
+def connectome_to_undirected(connectome):
+    """Combine bidirectional connections and make the connectome undirected.
+    This function takes a connectome dataframe as input and returns an undirected connectome dataframe."""
+    undirected_edges = {}  # Dictionary to store the undirected edges and their weights
+
+    for index, row in connectome.iterrows():
+        source = row['bodyId_pre']
+        target = row['bodyId_post']
+        weight = row['weight']
+
+        # Check if the edge already exists in the reverse
+        if (target, source) in undirected_edges:
+            # Update the weight of the existing edge
+            undirected_edges[(target, source)] += weight
+        else:
+            # Add a new edge to dict
+            undirected_edges[(source, target)] = weight
+
+    # Create a DataFrame from the undirected edges dictionary
+    undirected_edgelist = pd.DataFrame(list(undirected_edges.keys()), columns=['source', 'target'])
+    undirected_edgelist['weight'] = list(undirected_edges.values())
+
+    return undirected_edgelist

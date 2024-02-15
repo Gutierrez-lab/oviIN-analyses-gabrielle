@@ -1,12 +1,16 @@
-"""Get the personal connectome of neuron or neurons that are inputed by the user. """
+"""Get the personal connectome of neuron(s) that are inputed by the user. """
 
 # import the necessary libraries here
+import pandas as pd
+#import numpy as np
 
 def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='full', weight_threshold=1):
     """Get the personal connectome of neuron or neurons that are inputed by the user. 
     This function returns a connectome dataframe that contains the weighted connections between bodyIds. The synaptic weights 
     are collapsed across ROIs. This dataframe can be used to create a graph of the connectome in NetworkX using
     from_pandas_edgelist. However, the dataframe will need to be reformatted in order to run the clustering algorithms.
+    
+    main_neurons: can be a single bodyId, a list of bodyIds, or NeuronCriteria
 
     Options:
         - include the main neurons or not
@@ -15,10 +19,16 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
     
     from neuprint import fetch_adjacencies
     from neuprint import NeuronCriteria as NC
+    from neuprint import fetch_neurons
 
     # the 1st df returns all the neurons involved in making the specified connections
     pre, pre_conns = fetch_adjacencies(None, main_neurons)
     post, post_conns = fetch_adjacencies(main_neurons, None)
+
+    # it will now be necessary for main_neurons to be a list of bodyIds
+    if not (isinstance(main_neurons, int) or isinstance(main_neurons, list)):
+        main_neurons_df, roi_counts_df = fetch_neurons(main_neurons)
+        main_neurons = main_neurons_df['bodyId'].tolist()
 
     if connectome_type == 'input':
 
@@ -42,6 +52,8 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
             
         # combine unique pre and post bodyIds
         partners = pd.concat([pre['bodyId'], post['bodyId']]).unique()
+        # turn it back into a series
+        partners = pd.Series(partners)
 
         if exclude_main_neurons:
             # remove the main neurons from the partners
@@ -58,3 +70,5 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
         connectome = connectome[connectome['weight'] >= weight_threshold]
 
     return connectome
+
+# make another function to do the bidirectionality check

@@ -4,7 +4,7 @@
 import pandas as pd
 #import numpy as np
 
-def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='full', weight_threshold=1):
+def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='full', weight_threshold=1, connectome_by_type=False):
     """Get the personal connectome of neuron or neurons that are inputed by the user. 
     This function returns a connectome dataframe that contains the weighted connections between bodyIds. The synaptic weights 
     are collapsed across ROIs. This dataframe can be used to create a graph of the connectome in NetworkX using
@@ -15,7 +15,8 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
     Options:
         - include the main neurons or not
         - input, output, or full connectome
-        - weight threshold for the connection strengths to include in the connectome"""
+        - weight threshold for the connection strengths to include in the connectome
+        - connectome based on types rather than bodyIds"""
     
     from neuprint import fetch_adjacencies
     from neuprint import NeuronCriteria as NC
@@ -30,7 +31,7 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
         main_neurons_df, roi_counts_df = fetch_neurons(main_neurons)
         main_neurons = main_neurons_df['bodyId'].tolist()
 
-    if connectome_type == 'input':
+    if connectome_scope == 'input':
 
         if exclude_main_neurons:
             # remove the main neurons from the pre
@@ -39,7 +40,7 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
         # get connections among neurons using the bodyIds from pre
         partners_, connectome = fetch_adjacencies(pre['bodyId'], pre['bodyId'])
 
-    elif connectome_type == 'output':
+    elif connectome_scope == 'output':
 
         if exclude_main_neurons:
             # remove the main neurons from the post
@@ -48,7 +49,7 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
         # get connections among neurons using the bodyIds from post
         partners_, connectome = fetch_adjacencies(post['bodyId'], post['bodyId'])
 
-    elif connectome_type == 'full':
+    elif connectome_scope == 'full':
             
         # combine unique pre and post bodyIds
         partners = pd.concat([pre['bodyId'], post['bodyId']]).unique()
@@ -69,7 +70,20 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_type='fu
     if weight_threshold > 1:
         connectome = connectome[connectome['weight'] >= weight_threshold]
 
+    # if connectome_by_type is specified, merge the type information into the connectome and grouby type
+    if connectome_by_type:
+        # merge type_pre information from partners_ into connectome and rename type column to type_pre
+        connectome = connectome.merge(partners_[['bodyId','type']], left_on='bodyId_pre', right_on='bodyId').rename(columns={'type':'type_pre'})
+
+        # merge type_post information from partners_ into connectome and rename type column to type_post
+        connectome = connectome.merge(partners_[['bodyId','type']], left_on='bodyId_post', right_on='bodyId').rename(columns={'type':'type_post'})
+
+        # group by type_pre and type_post and sum the weights
+        connectome = connectome[['type_pre','type_post','weight']].groupby(['type_pre','type_post'], as_index=False).sum()
+
     return connectome
+
+
 
 # function to combine bidirectional connections and make the connectome undirected
 # this function is based on code from Rhessa's notebook. I believe that Alex's read_graph function in format_edgelight.py

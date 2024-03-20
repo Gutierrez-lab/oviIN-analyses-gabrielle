@@ -93,9 +93,18 @@ def connectome_to_undirected(connectome, connectome_by_type=False):
     This function takes a connectome dataframe as input and returns an undirected connectome dataframe."""
     undirected_edges = {}  # Dictionary to store the undirected edges and their weights
 
+    # Determine the column names for the pre and post neurons
+    # It would be better to look for column with *_pre and *_post instead of having to pass in a boolean
+    if connectome_by_type:
+        pre = 'type_pre'
+        post = 'type_post'
+    else:
+        pre = 'bodyId_pre'
+        post = 'bodyId_post'
+
     for index, row in connectome.iterrows():
-        source = row['bodyId_pre']
-        target = row['bodyId_post']
+        source = row[pre]
+        target = row[post]
         weight = row['weight']
 
         # Check if the edge already exists in the reverse

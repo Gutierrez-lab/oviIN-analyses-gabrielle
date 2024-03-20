@@ -27,7 +27,7 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='f
     post, post_conns = fetch_adjacencies(main_neurons, None)
 
     # it will now be necessary for main_neurons to be a list of bodyIds
-    if not (isinstance(main_neurons, int) or isinstance(main_neurons, list)):
+    if not isinstance(main_neurons, list):
         main_neurons_df, roi_counts_df = fetch_neurons(main_neurons)
         main_neurons = main_neurons_df['bodyId'].tolist()
 
@@ -88,7 +88,7 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='f
 # function to combine bidirectional connections and make the connectome undirected
 # this function is based on code from Rhessa's notebook. I believe that Alex's read_graph function in format_edgelight.py
 # does the same thing but in a different way, so this function may be redundant.
-def connectome_to_undirected(connectome):
+def connectome_to_undirected(connectome, connectome_by_type=False):
     """Combine bidirectional connections and make the connectome undirected.
     This function takes a connectome dataframe as input and returns an undirected connectome dataframe."""
     undirected_edges = {}  # Dictionary to store the undirected edges and their weights

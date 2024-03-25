@@ -78,6 +78,10 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='f
         # merge type_post information from partners_ into connectome and rename type column to type_post
         connectome = connectome.merge(partners_[['bodyId','type']], left_on='bodyId_post', right_on='bodyId').rename(columns={'type':'type_post'})
 
+        # replace None with 'unspecified' in type_pre and type_post columns
+        connectome['type_pre'] = connectome['type_pre'].fillna('unspecified')
+        connectome['type_post'] = connectome['type_post'].fillna('unspecified')
+
         # group by type_pre and type_post and sum the weights
         connectome = connectome[['type_pre','type_post','weight']].groupby(['type_pre','type_post'], as_index=False).sum()
 
@@ -88,19 +92,17 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='f
 # function to combine bidirectional connections and make the connectome undirected
 # this function is based on code from Rhessa's notebook. I believe that Alex's read_graph function in format_edgelight.py
 # does the same thing but in a different way, so this function may be redundant.
-def connectome_to_undirected(connectome, connectome_by_type=False):
+def connectome_to_undirected(connectome):
     """Combine bidirectional connections and make the connectome undirected.
     This function takes a connectome dataframe as input and returns an undirected connectome dataframe."""
     undirected_edges = {}  # Dictionary to store the undirected edges and their weights
 
     # Determine the column names for the pre and post neurons
     # It would be better to look for column with *_pre and *_post instead of having to pass in a boolean
-    if connectome_by_type:
-        pre = 'type_pre'
-        post = 'type_post'
-    else:
-        pre = 'bodyId_pre'
-        post = 'bodyId_post'
+    # get column names for pre and post neurons
+    connectome_columns = connectome.columns
+    pre = [col for col in connectome_columns if 'pre' in col][0]
+    post = [col for col in connectome_columns if 'post' in col][0]
 
     for index, row in connectome.iterrows():
         source = row[pre]

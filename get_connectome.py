@@ -98,8 +98,7 @@ def connectome_to_undirected(connectome):
     undirected_edges = {}  # Dictionary to store the undirected edges and their weights
 
     # Determine the column names for the pre and post neurons
-    # It would be better to look for column with *_pre and *_post instead of having to pass in a boolean
-    # get column names for pre and post neurons
+    # It is better to look for column with *_pre and *_post instead of having to pass in a boolean
     connectome_columns = connectome.columns
     pre = [col for col in connectome_columns if 'pre' in col][0]
     post = [col for col in connectome_columns if 'post' in col][0]

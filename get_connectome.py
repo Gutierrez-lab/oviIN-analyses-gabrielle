@@ -4,7 +4,7 @@
 import pandas as pd
 #import numpy as np
 
-def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='full', weight_threshold=1, connectome_by_type=False):
+def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='full', weight_threshold=1, connectome_by_type=False, only_traced=True):
     """Get the personal connectome of neuron or neurons that are inputed by the user. 
     This function returns a connectome dataframe that contains the weighted connections between bodyIds. The synaptic weights 
     are collapsed across ROIs. This dataframe can be used to create a graph of the connectome in NetworkX using
@@ -16,15 +16,29 @@ def get_connectome(main_neurons, exclude_main_neurons=False, connectome_scope='f
         - include the main neurons or not
         - input, output, or full connectome
         - weight threshold for the connection strengths to include in the connectome
-        - connectome based on types rather than bodyIds"""
+        - connectome based on types rather than bodyIds
+        - whether to only return Traced neurons"""
     
     from neuprint import fetch_adjacencies
     from neuprint import NeuronCriteria as NC
     from neuprint import fetch_neurons
 
-    # the 1st df returns all the neurons involved in making the specified connections
+    # these dfs return all the neurons involved in making the specified connections to the main neurons
     pre, pre_conns = fetch_adjacencies(None, main_neurons)
     post, post_conns = fetch_adjacencies(main_neurons, None)
+
+    # if only_traced is True, remove neurons that are not traced. Must fetch_neurons to get status label
+    if only_traced:
+        pre_neurons_df, roi_counts_df_ = fetch_neurons(pre['bodyId'])
+        post_neurons_df, roi_counts_df_ = fetch_neurons(post['bodyId'])
+
+        # merge status column into pre and post
+        pre = pre.merge(pre_neurons_df[['bodyId','status']], on='bodyId', how='left')
+        post = post.merge(post_neurons_df[['bodyId','status']], on='bodyId', how='left')
+
+        # filter out untraced neurons
+        pre = pre[pre['status'] == 'Traced']
+        post = post[post['status'] == 'Traced']
 
     # it will now be necessary for main_neurons to be a list of bodyIds
     if not isinstance(main_neurons, list):
